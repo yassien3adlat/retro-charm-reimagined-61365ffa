@@ -78,25 +78,58 @@ export default function OutfitBuilder() {
     setError("");
     setResult(null);
 
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke("outfit-suggestion", {
-        body: {
-          gender: gender || "men",
-          vibe: vibe || "classic",
-          products: filteredProducts.map((p) => ({
-            id: p.id,
-            title: p.title,
-            category: p.category,
-            tags: p.tags,
-            price: p.price,
-            currency: p.currency,
-          })),
-        },
-      });
+    // Simulate brief loading for UX
+    await new Promise((r) => setTimeout(r, 1500));
 
-      if (fnError) throw fnError;
-      if (data?.error) throw new Error(data.error);
-      setResult(data);
+    try {
+      // Client-side outfit generation
+      const products = filteredProducts;
+      if (products.length < 2) throw new Error("Not enough products");
+
+      // Shuffle and pick 2-4 items
+      const shuffled = [...products].sort(() => Math.random() - 0.5);
+      const count = Math.min(products.length, Math.floor(Math.random() * 2) + 2);
+      const picked = shuffled.slice(0, count);
+
+      const zones: OutfitPiece["zone"][] = ["top", "outer", "bottom", "feet", "accessory"];
+      const roles = ["Base Layer", "Statement Piece", "Foundation", "Finishing Touch", "Accent"];
+
+      const vibeNames: Record<string, string[]> = {
+        classic: ["The Timeless Edit", "Heritage Ensemble", "Refined Classic"],
+        relaxed: ["Weekend Ease", "Effortless Sunday", "Casual Sophistication"],
+        layered: ["The Layered Look", "Textured Depth", "Dimensional Style"],
+        bold: ["Statement Set", "Bold Declaration", "Power Ensemble"],
+      };
+
+      const vibeMoods: Record<string, string> = {
+        classic: "Timeless Refinement",
+        relaxed: "Effortless Ease",
+        layered: "Artful Layers",
+        bold: "Confident Energy",
+      };
+
+      const names = vibeNames[vibe || "classic"] || vibeNames.classic;
+      const outfitName = names[Math.floor(Math.random() * names.length)];
+
+      const pieces: OutfitPiece[] = picked.map((p, i) => ({
+        productId: p.id,
+        zone: zones[i % zones.length],
+        role: roles[i % roles.length],
+        reason: `Complements the ${vibe} aesthetic`,
+      }));
+
+      setResult({
+        outfitName,
+        selectedProductIds: picked.map((p) => p.id),
+        explanation: `A carefully curated ${vibe} look combining ${picked.map((p) => p.title).join(" and ")} for a refined, put-together style.`,
+        pieces,
+        stylingTips: [
+          "Roll sleeves slightly for a relaxed touch",
+          "Tuck the front for a more structured silhouette",
+          "Add a leather belt to anchor the look",
+        ],
+        mood: vibeMoods[vibe || "classic"] || "Curated Style",
+      });
       setStep(2);
     } catch (e) {
       console.error(e);
