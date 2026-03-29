@@ -1,14 +1,14 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, RefreshCw, ShoppingBag, ArrowRight } from "lucide-react";
+import { Sparkles, RefreshCw, ShoppingBag, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StoreHeader } from "@/components/StoreHeader";
 import { StoreFooter } from "@/components/StoreFooter";
 import { staticProducts, type StaticProduct } from "@/data/staticProducts";
 import { useCartStore } from "@/stores/cartStore";
 import { toast } from "sonner";
-import mannequinMale from "@/assets/mannequin-male.png";
-import mannequinFemale from "@/assets/mannequin-female.png";
+import mannequinMaleCasual from "@/assets/mannequin-male-casual.png";
+import mannequinFemaleCasual from "@/assets/mannequin-female-casual.png";
 
 type Gender = "men" | "women";
 
@@ -85,6 +85,13 @@ export default function OutfitBuilder() {
     setLoading(false);
   };
 
+  const handleAddSingle = (e: React.MouseEvent, product: StaticProduct) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addStaticItem(product, "M", 1);
+    toast.success(`${product.title} added to bag`);
+  };
+
   const handleAddAllToCart = () => {
     result?.pieces.forEach((p) => addStaticItem(p, "M", 1));
     toast.success(`${result?.pieces.length} items added to bag`);
@@ -96,7 +103,7 @@ export default function OutfitBuilder() {
     setHoveredPiece(null);
   };
 
-  const mannequinSrc = gender === "women" ? mannequinFemale : mannequinMale;
+  const mannequinSrc = gender === "women" ? mannequinFemaleCasual : mannequinMaleCasual;
 
   return (
     <div className="min-h-screen bg-background">
@@ -146,9 +153,9 @@ export default function OutfitBuilder() {
                     >
                       <div className="aspect-[3/4.5] bg-gradient-to-b from-secondary/20 to-secondary/40 flex items-center justify-center p-8">
                         <img
-                          src={g === "men" ? mannequinMale : mannequinFemale}
+                          src={g === "men" ? mannequinMaleCasual : mannequinFemaleCasual}
                           alt={g === "men" ? "Men" : "Women"}
-                          className="h-full object-contain opacity-30 group-hover:opacity-50 group-hover:scale-[1.03] transition-all duration-700"
+                          className="h-full object-contain opacity-50 group-hover:opacity-70 group-hover:scale-[1.03] transition-all duration-700"
                         />
                       </div>
                       <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-background via-background/90 to-transparent p-5 pt-14">
@@ -223,8 +230,8 @@ export default function OutfitBuilder() {
                 </div>
 
                 {/* Main Layout: Mannequin + Products */}
-                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-6 md:gap-0 items-start max-w-3xl mx-auto">
-                  
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1.1fr] gap-8 md:gap-0 items-start max-w-3xl mx-auto">
+
                   {/* Left: Mannequin */}
                   <motion.div
                     className="flex justify-center md:justify-end md:pr-10"
@@ -232,17 +239,17 @@ export default function OutfitBuilder() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.35, duration: 0.5 }}
                   >
-                    <div className="w-44 md:w-52">
-                      <div className="aspect-[3/5.5] bg-gradient-to-b from-secondary/10 via-secondary/20 to-secondary/10 rounded-sm flex items-center justify-center p-5 relative">
+                    <div className="w-52 md:w-60">
+                      <div className="aspect-[3/5] bg-gradient-to-b from-secondary/10 via-secondary/25 to-secondary/10 rounded-sm flex items-center justify-center p-5 relative overflow-hidden">
                         <img
                           src={mannequinSrc}
                           alt="Mannequin"
+                          width={512}
+                          height={1024}
                           className={`h-full object-contain transition-opacity duration-500 ${
-                            hoveredPiece ? "opacity-30" : "opacity-40"
+                            hoveredPiece ? "opacity-25" : "opacity-60"
                           }`}
                         />
-                        {/* Subtle glow behind mannequin */}
-                        <div className="absolute inset-0 bg-gradient-radial from-gold/[0.03] to-transparent pointer-events-none" />
                       </div>
                     </div>
                   </motion.div>
@@ -252,101 +259,117 @@ export default function OutfitBuilder() {
                     <div className="w-px h-full bg-border" />
                   </div>
 
-                  {/* Right: Product Cards */}
+                  {/* Right: Product Cards + CTA */}
                   <motion.div
-                    className="flex flex-col justify-center gap-2 md:pl-10"
+                    className="flex flex-col md:pl-10"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.4 }}
                   >
-                    <p className="font-sans text-[9px] uppercase tracking-[0.25em] text-muted-foreground mb-2 hidden md:block">
+                    <p className="font-sans text-[9px] uppercase tracking-[0.25em] text-muted-foreground mb-4 hidden md:block">
                       {result.pieces.length} Pieces
                     </p>
-                    
-                    {result.pieces.map((product, i) => (
-                      <motion.div
-                        key={product.id}
-                        initial={{ opacity: 0, x: 15 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.45 + i * 0.12, type: "spring", stiffness: 180, damping: 20 }}
-                        onMouseEnter={() => setHoveredPiece(product.id)}
-                        onMouseLeave={() => setHoveredPiece(null)}
-                      >
-                        <Link
-                          to={`/product/static/${product.handle}`}
-                          className={`group flex items-center gap-4 py-3 px-4 rounded-sm border transition-all duration-300 ${
-                            hoveredPiece === product.id
-                              ? "border-foreground/20 bg-secondary/30 shadow-sm"
-                              : "border-transparent hover:border-border"
-                          }`}
+
+                    <div className="space-y-3">
+                      {result.pieces.map((product, i) => (
+                        <motion.div
+                          key={product.id}
+                          initial={{ opacity: 0, x: 15 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.45 + i * 0.12, type: "spring", stiffness: 180, damping: 20 }}
+                          onMouseEnter={() => setHoveredPiece(product.id)}
+                          onMouseLeave={() => setHoveredPiece(null)}
                         >
-                          <div className="w-14 h-14 bg-secondary/40 rounded-sm overflow-hidden flex-shrink-0">
-                            <img
-                              src={product.image}
-                              alt={product.title}
-                              className="w-full h-full object-contain mix-blend-multiply p-1.5 group-hover:scale-110 transition-transform duration-500"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-serif text-[13px] text-foreground leading-snug truncate group-hover:text-foreground/80 transition-colors">
-                              {product.title}
-                            </p>
-                            <p className="font-sans text-[11px] text-muted-foreground mt-0.5 tracking-wide">
-                              {product.currency} {product.price.toLocaleString()}
-                            </p>
-                          </div>
-                          <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-foreground/50 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
-                        </Link>
-                      </motion.div>
-                    ))}
+                          <Link
+                            to={`/product/static/${product.handle}`}
+                            className={`group flex items-center gap-4 py-3 px-4 rounded-sm border transition-all duration-300 ${
+                              hoveredPiece === product.id
+                                ? "border-foreground/20 bg-secondary/30 shadow-sm"
+                                : "border-border hover:border-foreground/10"
+                            }`}
+                          >
+                            {/* Enlarged thumbnail */}
+                            <div className="w-20 h-20 bg-secondary/40 rounded-sm overflow-hidden flex-shrink-0">
+                              <img
+                                src={product.image}
+                                alt={product.title}
+                                loading="lazy"
+                                className="w-full h-full object-contain mix-blend-multiply p-2 group-hover:scale-110 transition-transform duration-500"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-serif text-sm text-foreground leading-snug truncate group-hover:text-foreground/80 transition-colors">
+                                {product.title}
+                              </p>
+                              <p className="font-sans text-[12px] text-muted-foreground mt-1 tracking-wide">
+                                {product.currency} {product.price.toLocaleString()}
+                              </p>
+                            </div>
+                            {/* Add to Cart button */}
+                            <button
+                              onClick={(e) => handleAddSingle(e, product)}
+                              className="w-9 h-9 rounded-full border border-border bg-background flex items-center justify-center flex-shrink-0 hover:bg-foreground hover:text-background hover:border-foreground transition-all duration-200"
+                              aria-label={`Add ${product.title} to cart`}
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </Link>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {/* Total */}
+                    <motion.div
+                      className="flex items-center justify-between border-t border-border pt-4 mt-5"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.9 }}
+                    >
+                      <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                        {result.pieces.length} pieces
+                      </span>
+                      <span className="font-serif text-xl text-foreground">
+                        EGP {totalPrice.toLocaleString()}
+                      </span>
+                    </motion.div>
+
+                    {/* Primary CTA */}
+                    <motion.button
+                      onClick={handleAddAllToCart}
+                      className="mt-4 w-full h-12 bg-foreground text-background font-sans text-[10px] uppercase tracking-[0.2em] hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1 }}
+                    >
+                      <ShoppingBag className="w-4 h-4" /> Add Complete Outfit to Cart
+                    </motion.button>
+
+                    {/* New Look button */}
+                    <motion.button
+                      onClick={resetAll}
+                      className="mt-2 w-full h-10 border border-border font-sans text-[10px] uppercase tracking-[0.2em] text-foreground hover:bg-secondary/50 transition-all flex items-center justify-center gap-2"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 1.05 }}
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" /> Generate New Look
+                    </motion.button>
                   </motion.div>
                 </div>
 
-                {/* Styling Tip */}
+                {/* Styling Note — boxed */}
                 <motion.div
-                  className="max-w-md mx-auto text-center"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.9 }}
-                >
-                  <p className="font-sans text-[9px] uppercase tracking-[0.25em] text-foreground/60 font-medium mb-2">
-                    Styling Note
-                  </p>
-                  <p className="font-sans text-[12px] text-muted-foreground leading-relaxed italic">
-                    "{result.tip}"
-                  </p>
-                </motion.div>
-
-                {/* Total + Actions */}
-                <motion.div
-                  className="max-w-md mx-auto space-y-5"
+                  className="max-w-lg mx-auto border border-border bg-secondary/20 rounded-sm p-6 text-center"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1 }}
+                  transition={{ delay: 1.1 }}
                 >
-                  <div className="flex items-center justify-between border-t border-border pt-5">
-                    <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                      Complete look · {result.pieces.length} pieces
-                    </span>
-                    <span className="font-serif text-xl text-foreground">
-                      EGP {totalPrice.toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={resetAll}
-                      className="flex-1 h-12 border border-border font-sans text-[10px] uppercase tracking-[0.2em] text-foreground hover:bg-secondary/50 transition-all flex items-center justify-center gap-2"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" /> New Look
-                    </button>
-                    <button
-                      onClick={handleAddAllToCart}
-                      className="flex-1 h-12 bg-foreground text-background font-sans text-[10px] uppercase tracking-[0.2em] hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-                    >
-                      <ShoppingBag className="w-3.5 h-3.5" /> Add All to Bag
-                    </button>
-                  </div>
+                  <p className="font-sans text-[10px] uppercase tracking-[0.25em] text-foreground font-medium mb-3">
+                    Styling Note
+                  </p>
+                  <p className="font-sans text-sm text-foreground/70 leading-relaxed">
+                    {result.tip}
+                  </p>
                 </motion.div>
               </motion.div>
             )}
