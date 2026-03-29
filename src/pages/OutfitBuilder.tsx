@@ -339,53 +339,33 @@ export default function OutfitBuilder() {
                   </motion.h2>
                 </div>
 
-                {/* Mannequin Dress-Up Display */}
+                {/* Hero Product Collage */}
                 <motion.div
-                  className="relative mx-auto"
-                  style={{ maxWidth: "400px" }}
+                  className="relative mx-auto max-w-lg"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.35 }}
                 >
-                  <div className="relative mx-auto w-52 md:w-64">
-                    {/* Base mannequin silhouette */}
-                    <img
-                      src={gender === "women" ? mannequinFemale : mannequinMale}
-                      alt="Mannequin"
-                      className="w-full opacity-15"
-                      width={512}
-                      height={1024}
-                    />
-
-                    {/* Clothing overlaid on the mannequin */}
-                    {result.pieces.map((piece, i) => {
-                      const product = staticProducts.find((p) => p.id === piece.productId);
-                      if (!product) return null;
-                      const pos = zoneOverlay[piece.zone] || zoneOverlay.top;
-
-                      return (
-                        <motion.div
-                          key={piece.productId}
-                          className="absolute pointer-events-none"
-                          style={{
-                            top: pos.top,
-                            left: pos.left,
-                            width: pos.width,
-                            height: pos.height,
-                          }}
-                          initial={{ opacity: 0, scale: 0.7 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.5 + i * 0.2, type: "spring", stiffness: 200 }}
-                        >
-                          <img
-                            src={product.image}
-                            alt={product.title}
-                            className="w-full h-full object-contain drop-shadow-lg"
-                            style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.15))" }}
-                          />
-                        </motion.div>
-                      );
-                    })}
+                  <div className={`grid gap-2 ${resultProducts.length <= 2 ? 'grid-cols-2' : resultProducts.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                    {resultProducts.map((product, i) => (
+                      <motion.div
+                        key={product.id}
+                        className={`bg-secondary/30 rounded-sm overflow-hidden ${resultProducts.length === 3 && i === 0 ? 'col-span-2 row-span-1' : ''}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 + i * 0.15, type: "spring", stiffness: 200 }}
+                      >
+                        <Link to={`/product/static/${product.handle}`} className="block group">
+                          <div className="aspect-[3/4] p-4 flex items-center justify-center">
+                            <img
+                              src={product.image}
+                              alt={product.title}
+                              className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+                            />
+                          </div>
+                        </Link>
+                      </motion.div>
+                    ))}
                   </div>
                 </motion.div>
 
