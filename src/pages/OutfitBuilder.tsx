@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Loader2, RefreshCw, ShoppingBag, ChevronLeft, ArrowRight } from "lucide-react";
+import { Sparkles, RefreshCw, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StoreHeader } from "@/components/StoreHeader";
 import { StoreFooter } from "@/components/StoreFooter";
@@ -12,155 +12,105 @@ import mannequinFemale from "@/assets/mannequin-female.png";
 
 type Gender = "men" | "women";
 
-interface OutfitPiece {
-  productId: string;
-  zone: "head" | "top" | "mid" | "outer" | "bottom" | "feet" | "accessory";
-  role: string;
-  reason: string;
-}
-
 interface OutfitResult {
   outfitName: string;
-  selectedProductIds: string[];
-  explanation: string;
-  pieces: OutfitPiece[];
-  stylingTips: string[];
+  pieces: StaticProduct[];
   mood: string;
+  tip: string;
 }
 
-const vibes = [
-  { value: "classic", label: "Classic", desc: "Timeless & refined" },
-  { value: "relaxed", label: "Relaxed", desc: "Effortless weekend" },
-  { value: "layered", label: "Layered", desc: "Textured depth" },
-  { value: "bold", label: "Bold", desc: "Statement pieces" },
-];
-
-// Zone overlay positions on the mannequin body (percentage-based)
-const zoneOverlay: Record<string, { top: string; left: string; width: string; height: string }> = {
-  head: { top: "0%", left: "15%", width: "70%", height: "12%" },
-  top: { top: "14%", left: "5%", width: "90%", height: "22%" },
-  mid: { top: "25%", left: "8%", width: "84%", height: "18%" },
-  outer: { top: "12%", left: "2%", width: "96%", height: "30%" },
-  bottom: { top: "42%", left: "10%", width: "80%", height: "32%" },
-  feet: { top: "78%", left: "12%", width: "76%", height: "20%" },
-  accessory: { top: "8%", left: "60%", width: "35%", height: "15%" },
+// Preset outfit combos — you can define your own here
+const presetOutfits: Record<Gender, Array<{ name: string; mood: string; tip: string; productIds: string[] }>> = {
+  men: [
+    {
+      name: "The Heritage Edit",
+      mood: "Timeless Refinement",
+      tip: "Roll sleeves slightly for a relaxed touch. Add a leather belt to anchor the look.",
+      productIds: ["static-3", "static-5", "static-6"],
+    },
+    {
+      name: "Weekend Ease",
+      mood: "Effortless Casual",
+      tip: "Tuck the front for a more structured silhouette. Pair with minimal accessories.",
+      productIds: ["static-5", "static-7"],
+    },
+    {
+      name: "The Layered Look",
+      mood: "Artful Layers",
+      tip: "Layer the quarter-zip over the jersey for textured depth.",
+      productIds: ["static-3", "static-6", "static-7"],
+    },
+  ],
+  women: [
+    {
+      name: "Soft Power",
+      mood: "Elevated Comfort",
+      tip: "Let the oversized sweater drape naturally. Add gold earrings for polish.",
+      productIds: ["static-2", "static-4"],
+    },
+    {
+      name: "Knit & Go",
+      mood: "Easy Sophistication",
+      tip: "Half-zip the jacket and layer over the sweater for dimension.",
+      productIds: ["static-2", "static-4"],
+    },
+  ],
 };
 
 export default function OutfitBuilder() {
-  const [step, setStep] = useState(0);
   const [gender, setGender] = useState<Gender | null>(null);
-  const [vibe, setVibe] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<OutfitResult | null>(null);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const addStaticItem = useCartStore((s) => s.addStaticItem);
 
-  const filteredProducts = useMemo(() => {
-    if (!gender) return staticProducts;
-    return staticProducts.filter((p) => p.category === gender);
-  }, [gender]);
-
-  const resultProducts = useMemo(() => {
-    if (!result) return [];
-    return result.selectedProductIds
-      .map((id) => staticProducts.find((p) => p.id === id))
-      .filter(Boolean) as StaticProduct[];
-  }, [result]);
-
   const totalPrice = useMemo(
-    () => resultProducts.reduce((sum, p) => sum + p.price, 0),
-    [resultProducts]
+    () => result?.pieces.reduce((sum, p) => sum + p.price, 0) ?? 0,
+    [result]
   );
 
-  // No longer needed - using zoneOverlay directly
-  const handleGenerate = async () => {
+  const handleSelectGender = async (g: Gender) => {
+    setGender(g);
     setLoading(true);
-    setError("");
     setResult(null);
 
-    // Simulate brief loading for UX
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1200));
 
-    try {
-      // Client-side outfit generation
-      const products = filteredProducts;
-      if (products.length < 2) throw new Error("Not enough products");
+    const outfits = presetOutfits[g];
+    const pick = outfits[Math.floor(Math.random() * outfits.length)];
+    const pieces = pick.productIds
+      .map((id) => staticProducts.find((p) => p.id === id))
+      .filter(Boolean) as StaticProduct[];
 
-      // Shuffle and pick 2-4 items
-      const shuffled = [...products].sort(() => Math.random() - 0.5);
-      const count = Math.min(products.length, Math.floor(Math.random() * 2) + 2);
-      const picked = shuffled.slice(0, count);
-
-      const zones: OutfitPiece["zone"][] = ["top", "outer", "bottom", "feet", "accessory"];
-      const roles = ["Base Layer", "Statement Piece", "Foundation", "Finishing Touch", "Accent"];
-
-      const vibeNames: Record<string, string[]> = {
-        classic: ["The Timeless Edit", "Heritage Ensemble", "Refined Classic"],
-        relaxed: ["Weekend Ease", "Effortless Sunday", "Casual Sophistication"],
-        layered: ["The Layered Look", "Textured Depth", "Dimensional Style"],
-        bold: ["Statement Set", "Bold Declaration", "Power Ensemble"],
-      };
-
-      const vibeMoods: Record<string, string> = {
-        classic: "Timeless Refinement",
-        relaxed: "Effortless Ease",
-        layered: "Artful Layers",
-        bold: "Confident Energy",
-      };
-
-      const names = vibeNames[vibe || "classic"] || vibeNames.classic;
-      const outfitName = names[Math.floor(Math.random() * names.length)];
-
-      const pieces: OutfitPiece[] = picked.map((p, i) => ({
-        productId: p.id,
-        zone: zones[i % zones.length],
-        role: roles[i % roles.length],
-        reason: `Complements the ${vibe} aesthetic`,
-      }));
-
-      setResult({
-        outfitName,
-        selectedProductIds: picked.map((p) => p.id),
-        explanation: `A carefully curated ${vibe} look combining ${picked.map((p) => p.title).join(" and ")} for a refined, put-together style.`,
-        pieces,
-        stylingTips: [
-          "Roll sleeves slightly for a relaxed touch",
-          "Tuck the front for a more structured silhouette",
-          "Add a leather belt to anchor the look",
-        ],
-        mood: vibeMoods[vibe || "classic"] || "Curated Style",
-      });
-      setStep(2);
-    } catch (e) {
-      console.error(e);
-      setError("Could not generate outfit. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    setResult({
+      outfitName: pick.name,
+      pieces,
+      mood: pick.mood,
+      tip: pick.tip,
+    });
+    setLoading(false);
   };
 
   const handleAddAllToCart = () => {
-    resultProducts.forEach((p) => addStaticItem(p, "M", 1));
-    toast.success(`${resultProducts.length} items added to bag`);
+    result?.pieces.forEach((p) => addStaticItem(p, "M", 1));
+    toast.success(`${result?.pieces.length} items added to bag`);
   };
 
   const resetAll = () => {
-    setStep(0);
     setGender(null);
-    setVibe(null);
     setResult(null);
-    setError("");
   };
+
+  const mannequinSrc = gender === "women" ? mannequinFemale : mannequinMale;
 
   return (
     <div className="min-h-screen bg-background">
       <StoreHeader />
 
       <main className="pt-24 pb-20">
-        <div className="container max-w-3xl mx-auto px-5">
+        <div className="container max-w-4xl mx-auto px-5">
           {/* Header */}
           <motion.div
-            className="text-center mb-10"
+            className="text-center mb-12"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -172,25 +122,47 @@ export default function OutfitBuilder() {
               Build Your Look
             </h1>
             <p className="font-sans text-sm text-muted-foreground max-w-md mx-auto">
-              Pick your vibe — our AI curates the perfect outfit from our collection.
+              Choose your style — we'll curate the perfect outfit from our collection.
             </p>
           </motion.div>
 
-          {/* Progress */}
-          {step < 2 && !loading && (
-            <div className="flex items-center gap-2 mb-10 max-w-[120px] mx-auto">
-              {[0, 1].map((s) => (
-                <div
-                  key={s}
-                  className={`flex-1 h-[2px] rounded-full transition-all duration-500 ${
-                    s <= step ? "bg-foreground" : "bg-border"
-                  }`}
-                />
-              ))}
-            </div>
-          )}
-
           <AnimatePresence mode="wait">
+            {/* Step: Gender Selection */}
+            {!gender && !loading && (
+              <motion.div
+                key="gender"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6"
+              >
+                <h2 className="font-serif text-xl text-foreground text-center">Who are we styling?</h2>
+                <div className="grid grid-cols-2 gap-6 max-w-md mx-auto">
+                  {(["men", "women"] as Gender[]).map((g) => (
+                    <button
+                      key={g}
+                      onClick={() => handleSelectGender(g)}
+                      className="group relative overflow-hidden rounded-sm border border-border hover:border-foreground/30 transition-all duration-500"
+                    >
+                      <div className="aspect-[3/4] bg-secondary/30 flex items-center justify-center p-6">
+                        <img
+                          src={g === "men" ? mannequinMale : mannequinFemale}
+                          alt={g === "men" ? "Men" : "Women"}
+                          className="h-full object-contain opacity-40 group-hover:opacity-60 group-hover:scale-105 transition-all duration-500"
+                        />
+                      </div>
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-background via-background/80 to-transparent p-4 pt-10">
+                        <span className="font-sans text-[11px] uppercase tracking-[0.2em] font-medium text-foreground">
+                          {g === "men" ? "Menswear" : "Womenswear"}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
             {/* Loading */}
             {loading && (
               <motion.div
@@ -222,96 +194,8 @@ export default function OutfitBuilder() {
               </motion.div>
             )}
 
-            {/* Step 0: Gender */}
-            {step === 0 && !loading && (
-              <motion.div
-                key="step0"
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -30 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-8"
-              >
-                <div className="text-center">
-                  <h2 className="font-serif text-xl text-foreground">Who are we styling?</h2>
-                </div>
-                <div className="grid grid-cols-2 gap-6 max-w-md mx-auto">
-                  {(["men", "women"] as Gender[]).map((g) => (
-                    <button
-                      key={g}
-                      onClick={() => { setGender(g); setStep(1); }}
-                      className="group relative overflow-hidden rounded-sm border border-border hover:border-foreground/30 transition-all duration-500"
-                    >
-                      <div className="aspect-[3/4] bg-secondary/30 flex items-center justify-center p-6">
-                        <img
-                          src={g === "men" ? mannequinMale : mannequinFemale}
-                          alt={g === "men" ? "Men" : "Women"}
-                          className="h-full object-contain opacity-40 group-hover:opacity-60 group-hover:scale-105 transition-all duration-500"
-                        />
-                      </div>
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-background via-background/80 to-transparent p-4 pt-10">
-                        <span className="font-sans text-[11px] uppercase tracking-[0.2em] font-medium text-foreground">
-                          {g === "men" ? "Menswear" : "Womenswear"}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-
-            {/* Step 1: Vibe */}
-            {step === 1 && !loading && (
-              <motion.div
-                key="step1"
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -30 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-8"
-              >
-                <div className="text-center">
-                  <h2 className="font-serif text-xl text-foreground">What's the vibe?</h2>
-                </div>
-                <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto">
-                  {vibes.map((v) => (
-                    <button
-                      key={v.value}
-                      onClick={() => setVibe(v.value)}
-                      className={`h-20 rounded-sm border-2 flex flex-col items-center justify-center gap-1 transition-all duration-300 ${
-                        vibe === v.value
-                          ? "border-foreground bg-foreground text-background"
-                          : "border-border hover:border-foreground/40 text-foreground"
-                      }`}
-                    >
-                      <span className="font-sans text-[12px] font-medium">{v.label}</span>
-                      <span className={`font-sans text-[10px] ${vibe === v.value ? "text-background/60" : "text-muted-foreground"}`}>
-                        {v.desc}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex gap-3 max-w-sm mx-auto">
-                  <button
-                    onClick={() => setStep(0)}
-                    className="h-12 px-5 border border-border font-sans text-[11px] uppercase tracking-[0.15em] text-foreground hover:bg-muted/50 transition-colors flex items-center gap-2"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" /> Back
-                  </button>
-                  <button
-                    onClick={handleGenerate}
-                    disabled={!vibe}
-                    className="flex-1 h-12 bg-foreground text-background font-sans text-[11px] uppercase tracking-[0.15em] hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" /> Style Me
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Result */}
-            {step === 2 && result && !loading && (
+            {/* Result: Mannequin + Products */}
+            {result && !loading && (
               <motion.div
                 key="result"
                 initial={{ opacity: 0, y: 20 }}
@@ -327,7 +211,7 @@ export default function OutfitBuilder() {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.2 }}
                   >
-                    {result.mood || "Your curated look"}
+                    {result.mood}
                   </motion.p>
                   <motion.h2
                     className="font-serif text-2xl md:text-3xl text-foreground"
@@ -339,29 +223,51 @@ export default function OutfitBuilder() {
                   </motion.h2>
                 </div>
 
-                {/* Hero Product Collage */}
+                {/* Mannequin + Product Cards Side by Side */}
                 <motion.div
-                  className="relative mx-auto max-w-lg"
+                  className="flex flex-col md:flex-row items-center md:items-start gap-8 max-w-2xl mx-auto"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.35 }}
                 >
-                  <div className={`grid gap-2 ${resultProducts.length <= 2 ? 'grid-cols-2' : resultProducts.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                    {resultProducts.map((product, i) => (
+                  {/* Mannequin */}
+                  <div className="w-48 md:w-56 flex-shrink-0">
+                    <div className="aspect-[3/5] bg-secondary/20 rounded-sm flex items-center justify-center p-4">
+                      <img
+                        src={mannequinSrc}
+                        alt="Mannequin"
+                        className="h-full object-contain opacity-50"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Product List */}
+                  <div className="flex-1 space-y-3 w-full">
+                    {result.pieces.map((product, i) => (
                       <motion.div
                         key={product.id}
-                        className={`bg-secondary/30 rounded-sm overflow-hidden ${resultProducts.length === 3 && i === 0 ? 'col-span-2 row-span-1' : ''}`}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.4 + i * 0.15, type: "spring", stiffness: 200 }}
                       >
-                        <Link to={`/product/static/${product.handle}`} className="block group">
-                          <div className="aspect-[3/4] p-4 flex items-center justify-center">
+                        <Link
+                          to={`/product/static/${product.handle}`}
+                          className="group flex items-center gap-4 border border-border/60 rounded-sm p-3 hover:border-foreground/20 transition-all bg-background"
+                        >
+                          <div className="w-16 h-16 bg-secondary/30 rounded-sm overflow-hidden flex-shrink-0">
                             <img
                               src={product.image}
                               alt={product.title}
-                              className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+                              className="w-full h-full object-contain mix-blend-multiply p-1.5 group-hover:scale-110 transition-transform duration-500"
                             />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-serif text-sm text-foreground leading-tight truncate">
+                              {product.title}
+                            </p>
+                            <p className="font-sans text-[11px] text-muted-foreground mt-0.5">
+                              {product.currency} {product.price.toLocaleString()}
+                            </p>
                           </div>
                         </Link>
                       </motion.div>
@@ -369,52 +275,20 @@ export default function OutfitBuilder() {
                   </div>
                 </motion.div>
 
-                {/* Product List Below */}
+                {/* Styling Tip */}
                 <motion.div
-                  className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-lg mx-auto"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 }}
-                >
-                  {result.pieces.map((piece, i) => {
-                    const product = staticProducts.find((p) => p.id === piece.productId);
-                    if (!product) return null;
-                    return (
-                      <Link
-                        key={piece.productId}
-                        to={`/product/static/${product.handle}`}
-                        className="group border border-border/60 rounded-sm p-2 hover:border-foreground/20 transition-all bg-background"
-                      >
-                        <div className="aspect-square bg-secondary/30 rounded-sm overflow-hidden mb-1.5">
-                          <img
-                            src={product.image}
-                            alt={product.title}
-                            className="w-full h-full object-contain mix-blend-multiply p-2 group-hover:scale-110 transition-transform duration-500"
-                          />
-                        </div>
-                        <p className="font-sans text-[9px] uppercase tracking-[0.1em] text-gold/80 mb-0.5">
-                          {piece.role}
-                        </p>
-                        <p className="font-serif text-[11px] text-foreground leading-tight truncate">
-                          {product.title}
-                        </p>
-                        <p className="font-sans text-[10px] text-muted-foreground mt-0.5">
-                          {product.currency} {product.price.toLocaleString()}
-                        </p>
-                      </Link>
-                    );
-                  })}
-                </motion.div>
-
-                {/* Explanation */}
-                <motion.p
-                  className="font-sans text-sm text-muted-foreground text-center max-w-lg mx-auto leading-relaxed"
+                  className="max-w-md mx-auto"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.8 }}
                 >
-                  {result.explanation}
-                </motion.p>
+                  <p className="font-sans text-[10px] uppercase tracking-[0.2em] text-foreground font-medium mb-1.5">
+                    How to wear it
+                  </p>
+                  <p className="font-sans text-[11px] text-muted-foreground leading-relaxed">
+                    ✦ {result.tip}
+                  </p>
+                </motion.div>
 
                 {/* Total */}
                 <motion.div
@@ -424,38 +298,19 @@ export default function OutfitBuilder() {
                   transition={{ delay: 0.9 }}
                 >
                   <span className="font-sans text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
-                    Complete look · {resultProducts.length} pieces
+                    Complete look · {result.pieces.length} pieces
                   </span>
                   <span className="font-serif text-lg text-foreground">
                     EGP {totalPrice.toLocaleString()}
                   </span>
                 </motion.div>
 
-                {/* Styling Tips */}
-                {result.stylingTips?.length > 0 && (
-                  <motion.div
-                    className="space-y-2 max-w-md mx-auto"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1 }}
-                  >
-                    <p className="font-sans text-[10px] uppercase tracking-[0.2em] text-foreground font-medium">
-                      How to wear it
-                    </p>
-                    {result.stylingTips.map((tip, i) => (
-                      <p key={i} className="font-sans text-[11px] text-muted-foreground leading-relaxed">
-                        ✦ {tip}
-                      </p>
-                    ))}
-                  </motion.div>
-                )}
-
                 {/* Actions */}
                 <motion.div
                   className="flex gap-3 max-w-md mx-auto"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.1 }}
+                  transition={{ delay: 1 }}
                 >
                   <button
                     onClick={resetAll}
@@ -473,17 +328,6 @@ export default function OutfitBuilder() {
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Error */}
-          {error && (
-            <motion.p
-              className="text-center font-sans text-[11px] text-destructive mt-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              {error}
-            </motion.p>
-          )}
         </div>
       </main>
 
