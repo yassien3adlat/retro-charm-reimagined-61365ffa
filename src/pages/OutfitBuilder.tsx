@@ -73,11 +73,7 @@ export default function OutfitBuilder() {
     [resultProducts]
   );
 
-  const positionedPieces = useMemo(() => {
-    if (!result) return [];
-    return getAlternatedPositions(result.pieces);
-  }, [result]);
-
+  // No longer needed - using zoneOverlay directly
   const handleGenerate = async () => {
     setLoading(true);
     setError("");
