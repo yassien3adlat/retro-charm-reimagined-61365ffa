@@ -36,38 +36,16 @@ const vibes = [
   { value: "bold", label: "Bold", desc: "Statement pieces" },
 ];
 
-// Position products around the mannequin based on zone
-const zonePositions: Record<string, { top: string; left?: string; right?: string }> = {
-  head: { top: "2%", right: "-60%" },
-  top: { top: "22%", left: "-60%" },
-  mid: { top: "30%", right: "-60%" },
-  outer: { top: "18%", left: "-60%" },
-  bottom: { top: "55%", left: "-60%" },
-  feet: { top: "78%", right: "-60%" },
-  accessory: { top: "45%", right: "-60%" },
+// Zone overlay positions on the mannequin body (percentage-based)
+const zoneOverlay: Record<string, { top: string; left: string; width: string; height: string }> = {
+  head: { top: "0%", left: "15%", width: "70%", height: "12%" },
+  top: { top: "14%", left: "5%", width: "90%", height: "22%" },
+  mid: { top: "25%", left: "8%", width: "84%", height: "18%" },
+  outer: { top: "12%", left: "2%", width: "96%", height: "30%" },
+  bottom: { top: "42%", left: "10%", width: "80%", height: "32%" },
+  feet: { top: "78%", left: "12%", width: "76%", height: "20%" },
+  accessory: { top: "8%", left: "60%", width: "35%", height: "15%" },
 };
-
-// Alternate sides when multiple items land on the same side
-function getAlternatedPositions(pieces: OutfitPiece[]) {
-  let leftCount = 0;
-  let rightCount = 0;
-  
-  return pieces.map((piece) => {
-    const defaultPos = zonePositions[piece.zone] || zonePositions.top;
-    const isLeft = "left" in defaultPos;
-    
-    // Alternate to avoid stacking
-    if (isLeft) {
-      const offset = leftCount * 18;
-      leftCount++;
-      return { ...piece, style: { top: `${parseInt(defaultPos.top!) + offset}%`, left: "-55%" } };
-    } else {
-      const offset = rightCount * 18;
-      rightCount++;
-      return { ...piece, style: { top: `${parseInt(defaultPos.top!) + offset}%`, right: "-55%" } };
-    }
-  });
-}
 
 export default function OutfitBuilder() {
   const [step, setStep] = useState(0);
