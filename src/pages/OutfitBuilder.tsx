@@ -7,8 +7,6 @@ import { StoreFooter } from "@/components/StoreFooter";
 import { staticProducts, type StaticProduct } from "@/data/staticProducts";
 import { useCartStore } from "@/stores/cartStore";
 import { toast } from "sonner";
-import { useCartStore } from "@/stores/cartStore";
-import { toast } from "sonner";
 import mannequinMale from "@/assets/mannequin-male.png";
 import mannequinFemale from "@/assets/mannequin-female.png";
 
