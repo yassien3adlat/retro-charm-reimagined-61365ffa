@@ -307,81 +307,91 @@ export default function OutfitBuilder() {
                   </motion.h2>
                 </div>
 
-                {/* Mannequin + Outfit Display */}
+                {/* Mannequin Dress-Up Display */}
                 <motion.div
                   className="relative mx-auto"
-                  style={{ maxWidth: "560px" }}
+                  style={{ maxWidth: "400px" }}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.35 }}
                 >
-                  <div className="relative flex justify-center">
-                    {/* Mannequin */}
-                    <div className="relative w-40 md:w-48 flex-shrink-0">
-                      <img
-                        src={gender === "women" ? mannequinFemale : mannequinMale}
-                        alt="Mannequin"
-                        className="w-full opacity-20"
-                        width={512}
-                        height={1024}
-                      />
+                  <div className="relative mx-auto w-52 md:w-64">
+                    {/* Base mannequin silhouette */}
+                    <img
+                      src={gender === "women" ? mannequinFemale : mannequinMale}
+                      alt="Mannequin"
+                      className="w-full opacity-15"
+                      width={512}
+                      height={1024}
+                    />
 
-                      {/* Overlay product images on mannequin */}
-                      {positionedPieces.map((piece, i) => {
-                        const product = staticProducts.find((p) => p.id === piece.productId);
-                        if (!product) return null;
-                        const isLeft = "left" in piece.style;
+                    {/* Clothing overlaid on the mannequin */}
+                    {result.pieces.map((piece, i) => {
+                      const product = staticProducts.find((p) => p.id === piece.productId);
+                      if (!product) return null;
+                      const pos = zoneOverlay[piece.zone] || zoneOverlay.top;
 
-                        return (
-                          <motion.div
-                            key={piece.productId}
-                            className="absolute"
-                            style={{
-                              top: piece.style.top,
-                              ...(isLeft ? { left: piece.style.left } : { right: piece.style.right }),
-                              width: "110%",
-                            }}
-                            initial={{ opacity: 0, x: isLeft ? -20 : 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.5 + i * 0.15 }}
-                          >
-                            <Link
-                              to={`/product/static/${product.handle}`}
-                              className="group flex items-center gap-2"
-                              style={{ flexDirection: isLeft ? "row-reverse" : "row" }}
-                            >
-                              {/* Connecting line */}
-                              <div
-                                className={`hidden md:block h-px bg-border/60 flex-shrink-0`}
-                                style={{ width: "24px" }}
-                              />
-
-                              {/* Product card */}
-                              <div className="bg-background border border-border/60 rounded-sm p-2 shadow-sm hover:shadow-md hover:border-foreground/20 transition-all duration-300 w-32 md:w-36">
-                                <div className="aspect-square bg-secondary/30 rounded-sm overflow-hidden mb-1.5">
-                                  <img
-                                    src={product.image}
-                                    alt={product.title}
-                                    className="w-full h-full object-contain mix-blend-multiply p-2 group-hover:scale-110 transition-transform duration-500"
-                                    loading="lazy"
-                                  />
-                                </div>
-                                <p className="font-sans text-[9px] uppercase tracking-[0.1em] text-gold/80 mb-0.5">
-                                  {piece.role}
-                                </p>
-                                <p className="font-serif text-[11px] text-foreground leading-tight truncate">
-                                  {product.title}
-                                </p>
-                                <p className="font-sans text-[10px] text-muted-foreground mt-0.5">
-                                  {product.currency} {product.price.toLocaleString()}
-                                </p>
-                              </div>
-                            </Link>
-                          </motion.div>
-                        );
-                      })}
-                    </div>
+                      return (
+                        <motion.div
+                          key={piece.productId}
+                          className="absolute pointer-events-none"
+                          style={{
+                            top: pos.top,
+                            left: pos.left,
+                            width: pos.width,
+                            height: pos.height,
+                          }}
+                          initial={{ opacity: 0, scale: 0.7 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.5 + i * 0.2, type: "spring", stiffness: 200 }}
+                        >
+                          <img
+                            src={product.image}
+                            alt={product.title}
+                            className="w-full h-full object-contain drop-shadow-lg"
+                            style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.15))" }}
+                          />
+                        </motion.div>
+                      );
+                    })}
                   </div>
+                </motion.div>
+
+                {/* Product List Below */}
+                <motion.div
+                  className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-lg mx-auto"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 }}
+                >
+                  {result.pieces.map((piece, i) => {
+                    const product = staticProducts.find((p) => p.id === piece.productId);
+                    if (!product) return null;
+                    return (
+                      <Link
+                        key={piece.productId}
+                        to={`/product/static/${product.handle}`}
+                        className="group border border-border/60 rounded-sm p-2 hover:border-foreground/20 transition-all bg-background"
+                      >
+                        <div className="aspect-square bg-secondary/30 rounded-sm overflow-hidden mb-1.5">
+                          <img
+                            src={product.image}
+                            alt={product.title}
+                            className="w-full h-full object-contain mix-blend-multiply p-2 group-hover:scale-110 transition-transform duration-500"
+                          />
+                        </div>
+                        <p className="font-sans text-[9px] uppercase tracking-[0.1em] text-gold/80 mb-0.5">
+                          {piece.role}
+                        </p>
+                        <p className="font-serif text-[11px] text-foreground leading-tight truncate">
+                          {product.title}
+                        </p>
+                        <p className="font-sans text-[10px] text-muted-foreground mt-0.5">
+                          {product.currency} {product.price.toLocaleString()}
+                        </p>
+                      </Link>
+                    );
+                  })}
                 </motion.div>
 
                 {/* Explanation */}
